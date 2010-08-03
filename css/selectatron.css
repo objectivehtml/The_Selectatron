@@ -1,0 +1,85 @@
+.bsmContainer {
+  /* container that surrounds entire bsmSelect widget */
+}
+
+
+
+.bsmContainer i {display: none;}
+
+.bsmSelect {
+  /* the newly created regular 'select' */
+  display: inline;
+}
+
+.bsmOptionDisabled {
+  /* disabled options in new select */
+  color: #999;
+}
+
+select.bsmSelect {width: 50%; margin-top: 10px;}
+
+.bsmHighlight {
+  /* the highlight span */
+  float: right;
+  padding: 0;
+  margin: 0 0 0 1em;
+}
+
+.bsmListSortable {
+  /* html list that contains selected items */
+  margin: 1.25em 0 1em 0;
+  position: relative;
+  display: block;
+  padding-left: 0;
+  list-style: none;
+}
+
+.bsmListItem {
+  /* li item from the html list above */
+  position: relative;
+  margin-left: 0;
+  padding-left: 0;
+  list-style: none;
+  width: 100%;
+  margin: 0 0 -1px 0;
+  line-height: 1em;
+  -webkit-border-radius: 10px;
+  -webkit-box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  margin:  3px 0 3px 0;
+  padding: 5px;
+  background-color: #f6f6f6;
+	background: -moz-linear-gradient(top, #fff, #f6f6f6); /* gecko */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #fff), color-stop(1, #f6f6f6));
+	font-weight: bold;
+	text-shadow: 1px 1px 2px #fff;
+}
+
+.bsmListItem.ui-sortable-helper {
+	-webkit-transform: scale(1.01);
+	-webkit-box-shadow: 0 0 5px rgba(0,0,0,0.3);
+	opacity: 0.8;
+}
+
+.bsmListItem:hover {
+  background: #fff;
+}
+
+.bsmListItemLabel {
+  /* this is a span that surrounds the text in the item, except for the remove link */
+  padding: 5px;
+  display: block;
+}
+
+.bsmListSortable .bsmListItemLabel {
+  cursor: move;
+}
+
+.bsmListItemRemove {
+  /* the remove link in each list item */
+  position: absolute;
+  right: 0;
+  top: 0;
+  padding: 10px;
+  text-decoration: none !important;
+}
+
