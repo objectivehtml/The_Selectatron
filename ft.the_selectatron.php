@@ -155,7 +155,7 @@
 		}
 		
 		// settings for the field,
-		// we're just setting which fields should be shown
+		// we're just setting which channels should be shown
 		public function display_settings($data)
 		{
 			
@@ -164,10 +164,10 @@
 			// get a little help from our old friend mr channel_model
 			$this->EE->load->model('channel_model');
 			
-			// get our field groups
+			// get our channels groups
 			$channels_query = $this->EE->channel_model->get_channels();
 
-			// loop through the field groups
+			// loop through the channels groups
 			foreach ($channels_query->result_array() as $channel)
 			{
 				$channel_id = $channel['channel_id'];
@@ -175,13 +175,13 @@
 				$channel_options[$channel_id] = $channel_title;
 			}
 
-			// grab the selected templates if they've been set
+			// grab the selected channels if they've been set
 			if(isset($data['channel_preferences']))
 			{
 				$selected_channels = explode(',', $data['channel_preferences']) ;
 			}
 									
-			// add the table row for selecting fields, and the multiselect
+			// add the table row for selecting channels, and the multiselect
 			// @todo let users build a list of manual options, not just entries
 			$this->EE->table->add_row(
 				$this->EE->lang->line('select_channels'),
