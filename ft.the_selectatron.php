@@ -144,27 +144,23 @@
 			// we need to find the old values, and delete any rels that exist
 			// if its a new entry, we don't need to do this
 			// I was a bit rough at first and simply deleted all the rels that this entry was a parent of..
-			// there could be another related entries field on the same entry...
-			// @todo, still some scenarios where existing rel data could get wiped.
 			if($this->EE->input->post('entry_id'))
 			{
-
 				$query = $this->EE->db->get_where('channel_data', array('entry_id' => $this->EE->input->post('entry_id')), 1);
-				
-			
 				if ($query->num_rows() > 0)
 				{
 					foreach ($query->result_array() as $row)
 					{
+						
 						if($row['field_id_'.$this->field_id] != '')
 						{
-							$existing_entries = explode("|", $row['field_id_'.$this->field_id]);
-							
+							$existing_entries = explode("|", $row['field_id_'.$this->field_id]);							
 							// @todo compare existing entries and only 
 							// delete changes instead of all, when its not 1am.
 							foreach ($existing_entries as $row => $entry)
 							{
-								$this->EE->db->where('rel_parent_id', $entry);
+								$this->EE->db->where('rel_parent_id', $this->EE->input->post('entry_id'));
+								$this->EE->db->where('rel_child_id', $entry);
 								$this->EE->db->delete('relationships');
 							}
 						}
