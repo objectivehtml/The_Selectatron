@@ -18,7 +18,7 @@
 			'version'	=> '0.2'
 		);
 		
-		var $asset_path = '/system/expressionengine/third_party/the_selectatron/';
+		var $asset_path = 'expressionengine/third_party/the_selectatron/';
 
 		public function The_selectatron_ft()
 		{
@@ -121,12 +121,12 @@
 		
 		function pre_process($data)
 		{
-			// nada
+			return $data;
 		}
 		
 		public function replace_tag($data, $params = FALSE, $tagdata = FALSE)
 		{
-			// nada	
+			return $data;
 		}
 		
 	 	public function save($data){
