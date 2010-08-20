@@ -43,6 +43,8 @@ Select the channels you'd like to 'relate' and also if you want the field to sto
 
 Activate the fieldtype.
 
+If you want to install and run with EE installed above the root, you'll need to move the `selectatron_assets` folder, there's a var you can update on line 23 of the fieldtype to define the location. I plan to move this to third_party themes folder at some point.
+
 ### Restrictions
 
 Unless you have been granted prior, written consent from Iain Urquhart, you may not:

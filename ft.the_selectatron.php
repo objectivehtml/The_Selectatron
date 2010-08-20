@@ -18,7 +18,8 @@
 			'version'	=> '0.2'
 		);
 		
-		var $asset_path = 'expressionengine/third_party/the_selectatron/';
+		// if you want to move the selectatron_assets folder, you can do so here
+		var $asset_path = 'expressionengine/third_party/the_selectatron/selectatron_assets/';
 
 		public function The_selectatron_ft()
 		{
@@ -156,7 +157,7 @@
 						{
 							$existing_entries = explode("|", $row['field_id_'.$this->field_id]);							
 							// @todo compare existing entries and only 
-							// delete changes instead of all, when its not 1am.
+							// delete unselected instead of all, when its not 1am.
 							foreach ($existing_entries as $row => $entry)
 							{
 								$this->EE->db->where('rel_parent_id', $this->EE->input->post('entry_id'));
@@ -197,6 +198,10 @@
 						$channel_id = $row['channel_id'];
 					}
 				}
+				else
+				{
+					return NULL;
+				}
 	
 				// we loop though each of the users selections,
 				// and compile the relationships
@@ -236,10 +241,10 @@
 			// get a little help from our old friend mr channel_model
 			$this->EE->load->model('channel_model');
 			
-			// get our channels groups
+			// get our channels
 			$channels_query = $this->EE->channel_model->get_channels();
 
-			// loop through the channels groups
+			// loop through the channels
 			foreach ($channels_query->result_array() as $channel)
 			{
 				$channel_id = $channel['channel_id'];
@@ -249,7 +254,6 @@
 			
 			$selected_channels = NULL;
 			
-
 			// grab the selected channels if they've been set
 			if(isset($data['channel_preferences']))
 			{
