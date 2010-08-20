@@ -15,8 +15,10 @@
 	{
 		var $info = array(
 			'name'		=> 'The Selectatron',
-			'version'	=> '1.0'
+			'version'	=> '0.2'
 		);
+		
+		var $asset_path = '/system/expressionengine/third_party/the_selectatron/';
 
 		public function The_selectatron_ft()
 		{
@@ -37,15 +39,14 @@
 			
 			// get our required js and css
 			// @todo move this to the themes folder
-			$asset_path = '/system/expressionengine/third_party/the_selectatron/';
-			
+
 			// are we displaying this already?
 			if (! isset($this->cache['the_selectatron_displayed']))
 			{
-				$this->EE->cp->add_to_head('<link type="text/css" href="'.$asset_path.'css/selectatron.css" rel="stylesheet" />');
+				$this->EE->cp->add_to_head('<link type="text/css" href="'.$this->asset_path.'css/selectatron.css" rel="stylesheet" />');
 				// this plugin for sorting to order saved, otherwise we lose it
-				$this->EE->cp->add_to_head('<script type="text/javascript" src="'.$asset_path.'js/jquery.bsmselect.js"></script>');
-				$this->EE->cp->add_to_head('<script type="text/javascript" src="'.$asset_path.'js/selectatron.js"></script>');
+				$this->EE->cp->add_to_head('<script type="text/javascript" src="'.$this->asset_path.'js/jquery.bsmselect.js"></script>');
+				$this->EE->cp->add_to_head('<script type="text/javascript" src="'.$this->asset_path.'js/selectatron.js"></script>');
 				// lets not repeat ourselves
 				$this->cache['the_selectatron_displayed'] = TRUE;
 			}
@@ -56,8 +57,9 @@
 
 				$('#field_id_".$this->field_id."').bsmSelect({
 			        addItemTarget: 'bottom',
-			        title: 'Please select an option',
+			        title: 'Please select an entry',
 			        animate: true,
+			        removeLabel: 'x',
 			        listClass: 'selectatron".$this->field_id."',
 			        // highlight: true,
 			        sortable: true
@@ -65,7 +67,6 @@
 
 				sort('.selectatron".$this->field_id.">li', 'i');
 
-				
 			});
 			");
 			
@@ -113,7 +114,7 @@
 				$r .= "<option value='" . $entry['entry_id'] . "'" . $selected . " > " . $entry['entry_title'] . "</option>";
 			}
 			$r .= "</select>";
-
+			
 			return $r;
 
 		}
@@ -144,9 +145,54 @@
 
 		}
 		
+		// Using post save because we can get the 
+		// entry_id easily for new entries.
 		function post_save($data)
 		{
-			// nada
+			// check if the user has made some selections,
+			// and the preference setting for storing relationships has been set
+			if(!isset($data) && !$this->settings['store_ee_relationships'])
+			{
+				return NULL;
+			}
+			
+			$selected_entries = explode('|', $data);
+			
+			// we need to get the channel id now...
+			$query = $this->EE->db->get_where('channel_titles', array('entry_id' => $this->settings['entry_id']), 1);
+
+			if ($query->num_rows() > 0)
+			{
+				foreach ($query->result_array() as $row)
+				{
+					$channel_id = $row['channel_id'];
+				}
+			}
+			
+			// remove any previous rels where this entry is the parent_id
+			$this->EE->db->where('rel_parent_id', $this->settings['entry_id']);
+			$this->EE->db->delete('relationships');
+			
+			// we loop though each of the users selections,
+			// and compile the relationships
+			foreach($selected_entries as $key => $val)
+			{
+			
+				// we remove any previous
+			
+				// echo $key.'-'.$val.'<br />';
+				$reldata = array(
+					'type'       => 'channel',
+					'parent_id'  => $this->settings['entry_id'],
+					'child_id'   => $val,
+					'related_id' => $channel_id
+				);
+				
+				$this->EE->functions->compile_relationship($reldata, TRUE);
+			}
+			
+			// now we pray to jahova.
+						
 		}
 		
 		public function validate($data)
@@ -174,6 +220,9 @@
 				$channel_title = $channel['channel_title'];
 				$channel_options[$channel_id] = $channel_title;
 			}
+			
+			$selected_channels = NULL;
+			
 
 			// grab the selected channels if they've been set
 			if(isset($data['channel_preferences']))
@@ -186,6 +235,18 @@
 			$this->EE->table->add_row(
 				$this->EE->lang->line('select_channels'),
 				form_multiselect('channel_preferences[]', $channel_options, $selected_channels)
+			);
+			
+			$store_ee_relationships = NULL;
+			
+			if(isset($data['store_ee_relationships']))
+			{
+				$store_ee_relationships = $data['store_ee_relationships'];
+			}
+
+			$this->EE->table->add_row(
+				$this->EE->lang->line('store_ee_relationships'),
+				form_checkbox('store_ee_relationships', 1, $store_ee_relationships)
 			);
 
  		}
@@ -200,9 +261,12 @@
 			{
 				$channel_preferences = implode(',', $channel_preferences);
 			}
+			
+			$store_ee_relationships = $this->EE->input->post('store_ee_relationships');
 						
 			return array(
-				'channel_preferences'	=> $channel_preferences
+				'channel_preferences'	=> $channel_preferences,
+				'store_ee_relationships' => $store_ee_relationships
 			);
 		}		
 
