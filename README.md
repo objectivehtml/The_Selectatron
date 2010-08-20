@@ -12,7 +12,9 @@ The output from the field is primarily for use in embeds to templates with `exp:
 
 Say you had a channel for storing content for sidebar modules around your site. You want your publisher to be able to select from a list of available modules (which are EE entries), and also allow the publisher to choose the order they are displayed in.
 
-With this fieldtype, you can do just that. Each selection from the user is stored in a 12|22|44|45, so you can simply pass this to your embedded template, which has a regular exp:channel:entries tag and use the fixed_order parameter to control the order.
+![Screebshot](http://iain.co.nz/core/gfx/selectatron.png)
+
+With this fieldtype, you can do just that. Each selection from the user is stored in a 12|22|44|45 format, so you can simply pass this to your embedded template, which has a regular exp:channel:entries tag and use the fixed_order parameter to control the order.
 
 For example, in your parent template
 
