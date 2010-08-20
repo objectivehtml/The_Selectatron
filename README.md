@@ -4,7 +4,7 @@
 
 PLEASE NOTE this is a work in progress, not ready for prime time but free to play in a dev environment and send some feedback.
 
-This fieldtype for EE2 is a one to many relationship tool, on a shoestring. It lets you select entries from multiple weblogs, and store their entry ids in a 12|22|44|45 format. It also lets you store the selected entries as native EE relationships, so that you can use the reverse_related_entries tag to work entries from the other direction.
+This fieldtype for EE2 is a one to many relationship tool, on a shoestring. It lets you select entries from multiple channels, and store their entry ids in a 12|22|44|45 format. It also lets you store the selected entries as native EE relationships, so that you can use the reverse_related_entries tag to work entries from the other direction.
 
 The output from the field is primarily for use in embeds to templates with `exp:channel:entries` tags, and using the `fixed_order` parameter.
 
@@ -39,6 +39,7 @@ I plan to look at this further to see what hooks I can use to allow the related_
 
 Download the package & rename the download to 'the_selectatron'. 
 Drop it in your /system/expressionengine/third_party/ folder.
+Select the channels you'd like to 'relate' and also if you want the field to store native relationship data.
 
 Activate the fieldtype.
 
