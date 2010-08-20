@@ -140,8 +140,40 @@
 			{
 				$data[$key] = str_replace(array('\\', '|'), array('\\\\', '\|'), $val);
 			}
+			
+			// we need to find the old values, and delete any rels that exist
+			// if its a new entry, we don't need to do this
+			// I was a bit rough at first and simply deleted all the rels that this entry was a parent of..
+			// there could be another related entries field on the same entry...
+			// @todo, still some scenarios where existing rel data could get wiped.
+			if($this->EE->input->post('entry_id'))
+			{
 
+				$query = $this->EE->db->get_where('channel_data', array('entry_id' => $this->EE->input->post('entry_id')), 1);
+				
+			
+				if ($query->num_rows() > 0)
+				{
+					foreach ($query->result_array() as $row)
+					{
+						if($row['field_id_'.$this->field_id] != '')
+						{
+							$existing_entries = explode("|", $row['field_id_'.$this->field_id]);
+							
+							// @todo compare existing entries and only 
+							// delete changes instead of all, when its not 1am.
+							foreach ($existing_entries as $row => $entry)
+							{
+								$this->EE->db->where('rel_parent_id', $entry);
+								$this->EE->db->delete('relationships');
+							}
+						}
+											
+					}
+				}
+			}
 			return implode('|', $data);
+			// the post save function below will save the rel data again.
 
 		}
 		
@@ -149,46 +181,44 @@
 		// entry_id easily for new entries.
 		function post_save($data)
 		{
+		
+			// print_r($data);
 			// check if the user has made some selections,
 			// and the preference setting for storing relationships has been set
-			if(!isset($data) && !$this->settings['store_ee_relationships'])
+			if($data != '' && ($this->settings['store_ee_relationships'] == TRUE))
 			{
-				return NULL;
-			}
-			
-			$selected_entries = explode('|', $data);
-			
-			// we need to get the channel id now...
-			$query = $this->EE->db->get_where('channel_titles', array('entry_id' => $this->settings['entry_id']), 1);
-
-			if ($query->num_rows() > 0)
-			{
-				foreach ($query->result_array() as $row)
+				
+				$selected_entries = array();
+				$selected_entries = explode('|', $data);
+				
+				// we need to get the channel id now...
+				$query = $this->EE->db->get_where('channel_titles', array('entry_id' => $this->settings['entry_id']), 1);
+	
+				if ($query->num_rows() > 0)
 				{
-					$channel_id = $row['channel_id'];
+					foreach ($query->result_array() as $row)
+					{
+						$channel_id = $row['channel_id'];
+					}
+				}
+	
+				// we loop though each of the users selections,
+				// and compile the relationships
+				foreach($selected_entries as $key => $val)
+				{
+					$reldata = array(
+						'type'       => 'channel',
+						'parent_id'  => $this->settings['entry_id'],
+						'child_id'   => $val,
+						'related_id' => $channel_id
+					);
+					
+					$this->EE->functions->compile_relationship($reldata, TRUE);
 				}
 			}
-			
-			// remove any previous rels where this entry is the parent_id
-			$this->EE->db->where('rel_parent_id', $this->settings['entry_id']);
-			$this->EE->db->delete('relationships');
-			
-			// we loop though each of the users selections,
-			// and compile the relationships
-			foreach($selected_entries as $key => $val)
+			else
 			{
-			
-				// we remove any previous
-			
-				// echo $key.'-'.$val.'<br />';
-				$reldata = array(
-					'type'       => 'channel',
-					'parent_id'  => $this->settings['entry_id'],
-					'child_id'   => $val,
-					'related_id' => $channel_id
-				);
-				
-				$this->EE->functions->compile_relationship($reldata, TRUE);
+				return NULL;
 			}
 			
 			// now we pray to jahova.
