@@ -1,7 +1,7 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * Introvert: The Selectatron
+ * The Selectatron Fieldtype for ExpressionEngine 2.0
  *
  * @package		ExpressionEngine
  * @subpackage	Fieldtypes
@@ -15,21 +15,19 @@
 	{
 		var $info = array(
 			'name'		=> 'The Selectatron',
-			'version'	=> '0.2'
+			'version'	=> '1.2.1'
 		);
-		
-		// if you want to move the selectatron_assets folder, you can do so here
-		var $asset_path = 'expressionengine/third_party/the_selectatron/selectatron_assets/';
 
 		public function The_selectatron_ft()
 		{
 			parent::EE_Fieldtype();
+			$this->EE->lang->loadfile('the_selectatron');
 		}	
 
 		// output the field on the publish page
 		public function display_field($data)
 		{
-			
+						
 			$r = '';
 			$selected_entries = array();
 			
@@ -44,10 +42,10 @@
 			// are we displaying this already?
 			if (! isset($this->cache['the_selectatron_displayed']))
 			{
-				$this->EE->cp->add_to_head('<link type="text/css" href="'.$this->asset_path.'css/selectatron.css" rel="stylesheet" />');
-				// this plugin for sorting to order saved, otherwise we lose it
-				$this->EE->cp->add_to_head('<script type="text/javascript" src="'.$this->asset_path.'js/jquery.bsmselect.js"></script>');
-				$this->EE->cp->add_to_head('<script type="text/javascript" src="'.$this->asset_path.'js/selectatron.js"></script>');
+				$asset_path = $this->EE->config->item('theme_folder_url').'third_party/selectatron_assets/';
+				$this->EE->cp->add_to_head('<link type="text/css" href="'.$asset_path.'css/selectatron.css" rel="stylesheet" />');
+				$this->EE->cp->add_to_head('<script type="text/javascript" src="'.$asset_path.'js/jquery.bsmselect.js"></script>');
+				$this->EE->cp->add_to_head('<script type="text/javascript" src="'.$asset_path.'js/selectatron.js"></script>');
 				// lets not repeat ourselves
 				$this->cache['the_selectatron_displayed'] = TRUE;
 			}
@@ -55,19 +53,15 @@
 			// activate the bsmSelect!
 			$this->EE->javascript->output("
 			$(document).ready(function() {
-
 				$('#field_id_".$this->field_id."').bsmSelect({
 			        addItemTarget: 'bottom',
-			        title: 'Please select an entry',
+			        title: '".lang('please_select_an_entry')."',
 			        animate: true,
 			        removeLabel: 'x',
 			        listClass: 'selectatron".$this->field_id."',
 			        // highlight: true,
 			        sortable: true
 			      });
-
-				sort('.selectatron".$this->field_id.">li', 'i');
-
 			});
 			");
 			
@@ -93,6 +87,8 @@
 			$r .= "<select id='field_id_".$this->field_id."' multiple='multiple' name='field_id_".$this->field_id."[]'>";
 			
 			$channel = null;
+			$selected_options = '';
+			
 			foreach ($entry_query->result_array() as $entry)
 			{
 				if($channel != $entry['channel_title'])
@@ -106,13 +102,36 @@
 					// set the current channel
 					$channel = $entry['channel_title'];
 					// open another opt channel
-					$r .= "<optgroup label='" . $entry['channel_title'] ."'>";
+					$r .= "<optgroup label='" . $entry['channel_title'] ."'> \n";
 				}
 				
 				$key = array_search($entry['entry_id'], $data);
 				
 				$selected = (in_array($entry['entry_id'], $data)) ? " selected='selected' rel='".$key."' " : "";
-				$r .= "<option value='" . $entry['entry_id'] . "'" . $selected . " > " . $entry['entry_title'] . "</option>";
+				
+				if(!$selected)
+				{
+					// just output the option
+					$r .= "<option value='" . $entry['entry_id'] . "'> " . $entry['entry_title'] . "</option> \n";
+				}
+				else
+				{
+					// store the option as an array for output at the end
+					$selected_options[$key] = "<option value='" . $entry['entry_id'] . "'" . $selected . " > " . $entry['entry_title'] . "</option> \n";
+				}
+
+			}
+			
+			// add our selected on the end, sorted correctly
+			// bugfix/patch for now, might revisit for a better solution
+			if(is_array($selected_options))
+			{
+				$r .= "<optgroup label='" . lang('selected_entries') ."'>\n";
+				ksort($selected_options);
+				foreach($selected_options as $option)
+				{
+					$r .= $option;
+				}
 			}
 			$r .= "</select>";
 			
@@ -132,6 +151,8 @@
 		
 	 	public function save($data){
 	 	
+	 		// print_r($this->settings);
+	 	
 			if ( ! is_array($data))
 			{
 				$data = array($data);
@@ -142,33 +163,13 @@
 				$data[$key] = str_replace(array('\\', '|'), array('\\\\', '\|'), $val);
 			}
 			
-			// we need to find the old values, and delete any rels that exist
-			// if its a new entry, we don't need to do this
-			// I was a bit rough at first and simply deleted all the rels that this entry was a parent of..
-			if($this->EE->input->post('entry_id'))
+			// if we're storing EE relationships, then cache the data for post_save()
+			if($this->settings['store_ee_relationships'] == 1)
 			{
-				$query = $this->EE->db->get_where('channel_data', array('entry_id' => $this->EE->input->post('entry_id')), 1);
-				if ($query->num_rows() > 0)
-				{
-					foreach ($query->result_array() as $row)
-					{
-						
-						if($row['field_id_'.$this->field_id] != '')
-						{
-							$existing_entries = explode("|", $row['field_id_'.$this->field_id]);							
-							// @todo compare existing entries and only 
-							// delete unselected instead of all, when its not 1am.
-							foreach ($existing_entries as $row => $entry)
-							{
-								$this->EE->db->where('rel_parent_id', $this->EE->input->post('entry_id'));
-								$this->EE->db->where('rel_child_id', $entry);
-								$this->EE->db->delete('relationships');
-							}
-						}
-											
-					}
-				}
+				$field_id = $this->settings['field_id'];
+				$this->EE->session->cache['selectatron_'.$field_id]['data'] = implode('|', $data);
 			}
+			
 			return implode('|', $data);
 			// the post save function below will save the rel data again.
 
@@ -178,40 +179,32 @@
 		// entry_id easily for new entries.
 		function post_save($data)
 		{
-		
-			// print_r($data);
-			// check if the user has made some selections,
-			// and the preference setting for storing relationships has been set
-			if($data != '' && ($this->settings['store_ee_relationships'] == TRUE))
+			
+			$field_id = $this->settings['field_id'];
+			
+			$newdata = FALSE;
+			
+			if($this->settings['store_ee_relationships'] == 1 && isset($this->EE->session->cache['selectatron_'.$field_id]['data']))
 			{
-				
+				$newdata = $this->EE->session->cache['selectatron_'.$field_id]['data'];
+				// remove all rel data where this is a parent
+				// might be some implications for folks using other relationship fields on same publish page...
+				$this->EE->db->delete('relationships', array('rel_parent_id' => $this->settings['entry_id']));
+			}
+
+			if($newdata)
+			{
+		
 				$selected_entries = array();
-				$selected_entries = explode('|', $data);
-				
-				// we need to get the channel id now...
-				$query = $this->EE->db->get_where('channel_titles', array('entry_id' => $this->settings['entry_id']), 1);
-	
-				if ($query->num_rows() > 0)
-				{
-					foreach ($query->result_array() as $row)
-					{
-						$channel_id = $row['channel_id'];
-					}
-				}
-				else
-				{
-					return NULL;
-				}
-	
-				// we loop though each of the users selections,
-				// and compile the relationships
+				$selected_entries = explode('|', $newdata);
+
 				foreach($selected_entries as $key => $val)
 				{
+
 					$reldata = array(
 						'type'       => 'channel',
 						'parent_id'  => $this->settings['entry_id'],
-						'child_id'   => $val,
-						'related_id' => $channel_id
+						'child_id'   => $val
 					);
 					
 					$this->EE->functions->compile_relationship($reldata, TRUE);
@@ -221,8 +214,6 @@
 			{
 				return NULL;
 			}
-			
-			// now we pray to jahova.
 						
 		}
 		
@@ -235,10 +226,8 @@
 		// we're just setting which channels should be shown
 		public function display_settings($data)
 		{
-			
-			$this->EE->lang->loadfile('the_selectatron');
-			
-			// get a little help from our old friend mr channel_model
+						
+			// get mr channel_model
 			$this->EE->load->model('channel_model');
 			
 			// get our channels
@@ -262,36 +251,43 @@
 									
 			// add the table row for selecting channels, and the multiselect
 			// @todo let users build a list of manual options, not just entries
-			$this->EE->table->add_row(
-				$this->EE->lang->line('select_channels'),
-				form_multiselect('channel_preferences[]', $channel_options, $selected_channels)
-			);
 			
-			$store_ee_relationships = NULL;
-			
-			if(isset($data['store_ee_relationships']))
+			if(isset($channel_options))
 			{
-				$store_ee_relationships = $data['store_ee_relationships'];
+				
+				$this->EE->table->add_row(
+					$this->EE->lang->line('select_channels'),
+					form_multiselect('channel_preferences[]', $channel_options, $selected_channels)
+				);
+				
+				$store_ee_relationships = NULL;
+				
+				if(isset($data['store_ee_relationships']))
+				{
+					$store_ee_relationships = $data['store_ee_relationships'];
+				}
+	
+				$this->EE->table->add_row(
+					$this->EE->lang->line('store_ee_relationships'),
+					form_checkbox('store_ee_relationships', 1, $store_ee_relationships)
+				);
+				
 			}
-
-			$this->EE->table->add_row(
-				$this->EE->lang->line('store_ee_relationships'),
-				form_checkbox('store_ee_relationships', 1, $store_ee_relationships)
-			);
-
  		}
- 		
 
- 		
 	 	public function save_settings($data)
 		{
-
-			$channel_preferences = $this->EE->input->post('channel_preferences');
+			
+			$channel_preferences = '';
+			
+			$channel_preferences = $this->EE->input->post('channel_preferences');			
+			
 			if(is_array($channel_preferences))
 			{
 				$channel_preferences = implode(',', $channel_preferences);
 			}
 			
+
 			$store_ee_relationships = $this->EE->input->post('store_ee_relationships');
 						
 			return array(
